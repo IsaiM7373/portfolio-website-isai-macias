@@ -10,7 +10,7 @@
       <img src="./assets/me.jpg" alt="Isai Macias" class="profile-avatar" />
 
       <p class="paragraph"> 
-        I am on track to becoming a network administrator. I am taking definitive steps to achieve this goal, and while it is a long journey, I am confident in my path. I am currently in the midst of studying for my CompTIA Network+ certification while working to get my foot in the door here in the tech world.
+        I am on track to becoming a network administrator. I am taking definitive steps to achieve this goal, and while it is a long journey, I am confident in my path. I am currently in the midst of studying for my CompTIA Network+ certification while working to get my foot in the door here in the tech world. My insperation being my favorite teacher of all time mr.fox and his amazing tech skills.
       </p>
 
       <nav>
