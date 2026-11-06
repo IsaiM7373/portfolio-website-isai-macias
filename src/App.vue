@@ -1,17 +1,8 @@
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, onMounted } from 'vue'
 
 
-const GITHUB_USERNAME = 'IsaiM7373' 
-
-
-const activeTab = ref('home') // Options: 'home', 'about', 'portfolio'
-const repos = ref([])
-const isLoading = ref(false)
-const error = ref(null)
-const searchQuery = ref('')
-const selectedLanguage = ref('All')
-
+const activeTab = ref('home')
 
 const sections = [
   { id: 'home', title: 'Home' },
@@ -19,21 +10,27 @@ const sections = [
   { id: 'portfolio', title: 'Portfolio' }
 ]
 
-
 const navigateTo = (sectionId) => {
   activeTab.value = sectionId
 }
 
 
-const fetchGitHubRepos = async () => {
-  if (!GITHUB_USERNAME || GITHUB_USERNAME === 'IsaiM7373') return
+const GITHUB_USERNAME = 'IsaiM7373' 
+const TARGET_REPO_NAME = 'portfolio-website-isai-macias'
+
+const projectRepo = ref(null)
+const isLoading = ref(true)
+const error = ref(null)
+
+
+const fetchSpecificRepo = async () => {
   isLoading.value = true
   error.value = null
   try {
-    const response = await fetch(`https://api.github.com/users/${GITHUB_USERNAME}/repos?sort=updated&per_page=100`)
-    if (!response.ok) throw new Error('Failed to load GitHub repositories')
+    const response = await fetch(`https://api.github.com/repos/${GITHUB_USERNAME}/${TARGET_REPO_NAME}`)
+    if (!response.ok) throw new Error('Could not find the specified repository. Check your username and repo name!')
     const data = await response.json()
-    repos.value = data
+    projectRepo.value = data
   } catch (err) {
     error.value = err.message
   } finally {
@@ -42,29 +39,24 @@ const fetchGitHubRepos = async () => {
 }
 
 onMounted(() => {
-  fetchGitHubRepos()
+  fetchSpecificRepo()
 })
 
-
-const availableLanguages = computed(() => {
-  const langs = repos.value.map(r => r.language).filter(Boolean)
-  return ['All', ...new Set(langs)]
-})
-
-
-const filteredRepos = computed(() => {
-  return repos.value.filter(repo => {
-    const matchesSearch = repo.name.toLowerCase().includes(searchQuery.value.toLowerCase()) ||
-      (repo.description && repo.description.toLowerCase().includes(searchQuery.value.toLowerCase()))
-    const matchesLang = selectedLanguage.value === 'All' || repo.language === selectedLanguage.value
-    return matchesSearch && matchesLang
+// Format the date nicely (e.g., "Nov 6, 2026")
+const formatDate = (dateString) => {
+  if (!dateString) return ''
+  return new Date(dateString).toLocaleDateString('en-US', {
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric'
   })
-})
+}
 </script>
 
 <template>
   <div class="split-pane-layout">
     
+    <!-- Sidebar Navigation -->
     <aside class="sidebar">
       <img src="./assets/me.jpg" alt="Isai Macias" class="profile-avatar" />
       <h1 class="name">Isai Macias</h1>
@@ -92,7 +84,7 @@ const filteredRepos = computed(() => {
     
     <main class="content-pane">
       
-      <!-- 1. HOME PAGE -->
+      
       <section v-if="activeTab === 'home'" class="page-view">
         <h2>Welcome</h2>
         <p class="intro-text">
@@ -119,47 +111,36 @@ const filteredRepos = computed(() => {
         </div>
       </section>
 
-      <!-- 3. PORTFOLIO PAGE (GitHub Auto-Fetch) -->
+      
       <section v-else-if="activeTab === 'portfolio'" class="page-view">
-        <h2>Portfolio & GitHub Repositories</h2>
-        <p class="intro-text">Automatically fetching public repositories directly from GitHub.</p>
+        <h2>Portfolio Project</h2>
+        <p class="intro-text">Automatically fetching this project's repository details live from GitHub.</p>
 
-        <!-- Search & Filter Controls -->
-        <div class="filter-controls">
-          <input 
-            v-model="searchQuery" 
-            type="text" 
-            placeholder="Search projects..." 
-            class="search-input"
-          />
-          <select v-model="selectedLanguage" class="lang-select">
-            <option v-for="lang in availableLanguages" :key="lang" :value="lang">
-              {{ lang }}
-            </option>
-          </select>
-        </div>
-
-        <!-- Loading & Error States -->
-        <div v-if="isLoading" class="status-msg">Loading GitHub repositories...</div>
+       
+        <div v-if="isLoading" class="status-msg">Loading project repository from GitHub...</div>
         <div v-else-if="error" class="status-msg error">{{ error }}</div>
 
-        <!-- Asymmetric Repo Grid -->
-        <div v-else class="repo-grid">
-          <div 
-            v-for="(repo, index) in filteredRepos" 
-            :key="repo.id" 
-            class="repo-card"
-            :class="{ 'wide-card': index % 3 === 0 }"
-          >
+        
+        <div v-else-if="projectRepo" class="repo-grid">
+          <div class="repo-card wide-card">
             <div class="repo-header">
-              <h3><a :href="repo.html_url" target="_blank">{{ repo.name }}</a></h3>
-              <span v-if="repo.language" class="lang-tag">{{ repo.language }}</span>
+              <h3>
+                <a :href="projectRepo.html_url" target="_blank" rel="noopener noreferrer">
+                  {{ projectRepo.name }}
+                </a>
+              </h3>
+              <span v-if="projectRepo.language" class="lang-tag">{{ projectRepo.language }}</span>
             </div>
-            <p class="repo-desc">{{ repo.description || 'No description provided.' }}</p>
+
+            <p class="repo-desc">
+              {{ projectRepo.description || 'No description provided for this repository.' }}
+            </p>
+
             <div class="repo-footer">
-              <span>⭐ {{ repo.stargazers_count }}</span>
-              <span>🍴 {{ repo.forks_count }}</span>
-              <a :href="repo.html_url" target="_blank" class="repo-link">View Repository →</a>
+              <span class="update-date">Last updated: {{ formatDate(projectRepo.updated_at) }}</span>
+              <a :href="projectRepo.html_url" target="_blank" rel="noopener noreferrer" class="repo-link">
+                View on GitHub →
+              </a>
             </div>
           </div>
         </div>
@@ -295,26 +276,7 @@ const filteredRepos = computed(() => {
   margin: 0;
 }
 
-/* Filter Controls */
-.filter-controls {
-  display: flex;
-  gap: 1rem;
-  margin-bottom: 2rem;
-}
 
-.search-input, .lang-select {
-  background-color: #1e293b;
-  border: 1px solid #334155;
-  color: #ffffff;
-  padding: 0.75rem 1rem;
-  border-radius: 8px;
-  font-size: 0.95rem;
-}
-
-.search-input { flex: 2; }
-.lang-select { flex: 1; }
-
-/* Repository Asymmetric Grid */
 .repo-grid {
   display: grid;
   grid-template-columns: repeat(12, 1fr);
@@ -359,7 +321,6 @@ const filteredRepos = computed(() => {
     padding: 3rem;
   }
 
-  .repo-card { grid-column: span 6; }
   .repo-card.wide-card { grid-column: span 12; }
 }
 
@@ -397,6 +358,10 @@ const filteredRepos = computed(() => {
   align-items: center;
   font-size: 0.85rem;
   color: #64748b;
+}
+
+.update-date {
+  color: #94a3b8;
 }
 
 .repo-link {
